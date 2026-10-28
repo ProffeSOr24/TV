@@ -14,6 +14,13 @@ adb connect "$TV" >/dev/null
 adb -s "$TV" wait-for-device
 sh() { adb -s "$TV" shell "$@"; }
 
+# Тяжёлые приложения, которым незачем работать, пока они не открыты.
+NO_BG=(
+  com.google.android.youtube.tv com.google.android.youtube.tvmusic
+  ru.kinopoisk.tv gpm.tnt_premier ru.rt.video.app.tv ru.more.play rtb.mobile.android
+  com.vk.tv com.yandex.browser.tv tv.twitch.android.app com.google.android.videos
+)
+
 PROJECTIVY=com.spocky.projengmenu
 GTV_HOME=com.google.android.apps.tv.launcherx
 
@@ -80,6 +87,21 @@ case "$CMD" in
   restore)
     for p in "${BLOAT[@]}"; do sh pm enable "$p" >/dev/null 2>&1 && echo "включено: $p" || true; done
     ;;
+  boost)
+    # Оптимизация (предкомпиляция) приложений — быстрее запускаются. Занимает 5–15 минут.
+    echo "Оптимизирую приложения, это 5–15 минут, ТВ не выключай..."
+    sh cmd package bg-dexopt-job || true
+    # Запрет фоновой работы тяжёлым приложениям.
+    for p in "${NO_BG[@]}"; do
+      sh cmd appops set "$p" RUN_ANY_IN_BACKGROUND ignore >/dev/null 2>&1 && echo "без фона: $p" || true
+    done
+    echo "Свободно на диске:"; sh df -h /data | tail -1
+    echo "Готово. Перезагрузи ТВ: adb -s $TV reboot"
+    ;;
+  boost-undo)
+    for p in "${NO_BG[@]}"; do sh cmd appops set "$p" RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1 || true; done
+    echo "Фоновая работа приложений возвращена."
+    ;;
   launcher-get)
     # Открывает страницу Projectivy Launcher в Google Play на ТВ — останется нажать «Установить».
     sh am start -a android.intent.action.VIEW -d "market://details?id=$PROJECTIVY" >/dev/null
@@ -107,5 +129,5 @@ case "$CMD" in
     echo "Обои лежат на ТВ в Pictures/Wallpapers."
     ;;
   *)
-    echo "Команды: status | speed | undo | apps | debloat | restore | launcher-get | launcher-on | launcher-off | wallpapers"; exit 1 ;;
+    echo "Команды: status | speed | undo | apps | debloat | restore | boost | boost-undo | launcher-get | launcher-on | launcher-off | wallpapers"; exit 1 ;;
 esac
