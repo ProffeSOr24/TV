@@ -15,3 +15,12 @@ sudo apt install adb
 ```
 `undo` возвращает анимации как было, `apps` показывает список приложений.
 `debloat` отключает рекламу/демо/телеметрию TCL и ненужные в РФ сервисы, `restore` включает их обратно.
+
+## Лаунчер Projectivy
+```bash
+./scripts/tv-tune.sh 192.168.1.110 launcher-get   # открыть Projectivy в Google Play на ТВ
+./scripts/tv-tune.sh 192.168.1.110 launcher-on    # «Домой» → Projectivy
+./scripts/tv-tune.sh 192.168.1.110 launcher-off   # вернуть Google TV
+./scripts/tv-tune.sh 192.168.1.110 wallpapers     # закинуть обои из wallpapers/ на ТВ
+```
+Обои генерирует `python3 tools/make_wallpapers.py`.

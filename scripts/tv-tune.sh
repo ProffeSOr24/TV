@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ускорение TCL Android TV по сети через adb.
-# Использование: ./scripts/tv-tune.sh <IP телевизора> [status|speed|undo|apps|debloat|restore]
+# Использование: ./scripts/tv-tune.sh <IP телевизора> <команда>   (неверная команда покажет список)
 set -euo pipefail
 
 IP="${1:?Укажи IP телевизора: Настройки → Сеть и интернет → (твоя сеть)}"
@@ -13,6 +13,9 @@ adb connect "$TV" >/dev/null
 # При первом подключении на ТВ появится окно «Разрешить отладку?» — нажми «Разрешить».
 adb -s "$TV" wait-for-device
 sh() { adb -s "$TV" shell "$@"; }
+
+PROJECTIVY=com.spocky.projengmenu
+GTV_HOME=com.google.android.apps.tv.launcherx
 
 # Лишнее, что висит в фоне и ест память. Системное и нужное не трогаем.
 # Всё отключается обратимо (команда restore).
@@ -77,6 +80,30 @@ case "$CMD" in
   restore)
     for p in "${BLOAT[@]}"; do sh pm enable "$p" >/dev/null 2>&1 && echo "включено: $p" || true; done
     ;;
+  launcher-get)
+    # Открывает страницу Projectivy Launcher в Google Play на ТВ — останется нажать «Установить».
+    sh am start -a android.intent.action.VIEW -d "market://details?id=$PROJECTIVY" >/dev/null
+    echo "На ТВ открылся Google Play — нажми «Установить»."
+    ;;
+  launcher-on)
+    # Кнопка «Домой» начнёт открывать Projectivy вместо Google TV.
+    sh pm path "$PROJECTIVY" >/dev/null || { echo "Сначала установи Projectivy: launcher-get"; exit 1; }
+    sh pm disable-user --user 0 "$GTV_HOME" >/dev/null
+    sh input keyevent KEYCODE_HOME
+    echo "Готово. Если ТВ спросит, какой лаунчер использовать — выбери Projectivy «Всегда»."
+    ;;
+  launcher-off)
+    sh pm enable "$GTV_HOME" >/dev/null
+    sh input keyevent KEYCODE_HOME
+    echo "Вернул стандартный Google TV."
+    ;;
+  wallpapers)
+    # Копирует обои из папки wallpapers/ в «Изображения» на ТВ.
+    sh mkdir -p /sdcard/Pictures/Wallpapers
+    adb -s "$TV" push "$(dirname "$0")"/../wallpapers/*.jpg /sdcard/Pictures/Wallpapers/ >/dev/null
+    sh am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/Wallpapers >/dev/null || true
+    echo "Обои лежат на ТВ в Pictures/Wallpapers."
+    ;;
   *)
-    echo "Команды: status | speed | undo | apps | debloat | restore"; exit 1 ;;
+    echo "Команды: status | speed | undo | apps | debloat | restore | launcher-get | launcher-on | launcher-off | wallpapers"; exit 1 ;;
 esac
