@@ -87,6 +87,8 @@ case "$CMD" in
     ;;
   launcher-on)
     # Кнопка «Домой» начнёт открывать Projectivy вместо Google TV.
+    # Внимание: без Google TV перестаёт работать кнопка «TV/Live TV» на пульте TCL.
+    # Мягче — не делать этого, а включить в Projectivy «Override Home button».
     sh pm path "$PROJECTIVY" >/dev/null || { echo "Сначала установи Projectivy: launcher-get"; exit 1; }
     sh pm disable-user --user 0 "$GTV_HOME" >/dev/null
     sh input keyevent KEYCODE_HOME
